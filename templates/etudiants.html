@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Étudiants</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .container { max-width: 1000px; margin: 30px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2ecc71; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .btn-retour { display: inline-block; margin-bottom: 20px; padding: 10px 15px; background-color: #34495e; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="/" class="btn-retour">⬅️ Retour à l'Accueil</a>
+        <h1>📋 Liste des Étudiants Inscrits</h1>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>N° Carte</th>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Filière</th>
+                    <th>Niveau</th>
+                    <th>Téléphone</th>
+                    <th>Statut</th>
+                    <th>Actions</th> </tr>
+            </thead>
+            <tbody>
+                {% for etudiant in liste_etudiants %}
+                <tr>
+                    <td><strong>{{ etudiant[0] }}</strong></td>
+                    <td>{{ etudiant[1] }}</td>
+                    <td>{{ etudiant[2] }}</td>
+                    <td>{{ etudiant[3] }}</td>
+                    <td>{{ etudiant[4] }}</td>
+                    <td>{{ etudiant[5] }}</td>
+                    <td>{{ etudiant[6] }}</td>
+                    <td>
+                        <a href="/modifier_etudiant/{{ etudiant[0] }}" style="color: #3498db; text-decoration: none; margin-right: 10px; font-weight: bold;">✏️ Modifier</a>
+                        <a href="/supprimer_etudiant/{{ etudiant[0] }}" onclick="return confirm('Supprimer définitivement cet étudiant ?')" style="color: #e74c3c; text-decoration: none; font-weight: bold;">❌ Supprimer</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>

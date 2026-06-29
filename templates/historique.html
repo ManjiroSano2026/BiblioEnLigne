@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique de l'Étudiant</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .container { max-width: 900px; margin: 30px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #2c3e50; }
+        .search-box { margin: 20px 0; padding: 15px; background: #eef2f5; border-radius: 5px; }
+        input[type="text"] { padding: 10px; width: 250px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+        .btn-search { padding: 10px 20px; background-color: #9b59b6; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-search:hover { background-color: #8e44ad; }
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .badge { padding: 5px 10px; border-radius: 3px; font-size: 12px; font-weight: bold; color: white; background-color: #e67e22; }
+        .btn-retour { display: inline-block; float: left; padding: 10px 15px; background-color: #34495e; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="/" class="btn-retour">⬅️ Accueil</a>
+        <br><br>
+        <h1>🔍 Historique des Emprunts par Étudiant</h1>
+        
+        <div class="search-box">
+            <form action="/historique" method="GET">
+                <input type="text" name="id_carte" placeholder="N° Carte Étudiant (Ex: E001)" value="{{ id_carte_recherche }}" required>
+                <button type="submit" class="btn-search">Rechercher</button>
+            </form>
+        </div>
+
+        {% if id_carte_recherche %}
+            {% if emprunts %}
+                <h3>Emprunts trouvés pour la carte : {{ id_carte_recherche }}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code Livre</th>
+                            <th>Titre du Livre</th>
+                            <th>Auteur</th>
+                            <th>Date d'Emprunt</th>
+                            <th>Date de Retour Prévue</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in emprunts %}
+                        <tr>
+                            <td><strong>{{ emp[0] }}</strong></td>
+                            <td>{{ emp[1] }}</td>
+                            <td>{{ emp[2] }}</td>
+                            <td>{{ emp[3] }}</td>
+                            <td>{{ emp[4] }}</td>
+                            <td><span class="badge">{{ emp[5] }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="color: #e74c3c; font-weight: bold; margin-top: 20px;">⚠️ Aucun emprunt enregistré pour ce numéro de carte.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+
+</body>
+</html>

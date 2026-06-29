@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajouter un Livre</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .container { max-width: 500px; margin: 30px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn-submit { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .btn-submit:hover { background-color: #2980b9; }
+        .btn-retour { display: inline-block; margin-bottom: 20px; padding: 10px 15px; background-color: #34495e; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="/" class="btn-retour">⬅️ Retour à l'Accueil</a>
+        <h1>➕ Ajouter un Nouveau Livre</h1>
+        
+        <form action="/ajouter_livre" method="POST">
+            <div class="form-group">
+                <label for="id_livre">Code du Livre (Ex: L004) :</label>
+                <input type="text" id="id_livre" name="id_livre" required>
+            </div>
+            <div class="form-group">
+                <label for="titre">Titre du livre :</label>
+                <input type="text" id="titre" name="titre" required>
+            </div>
+            <div class="form-group">
+                <label for="auteur">Auteur :</label>
+                <input type="text" id="auteur" name="auteur" required>
+            </div>
+            <div class="form-group">
+                <label for="annee">Année de publication :</label>
+                <input type="number" id="annee" name="annee" required>
+            </div>
+            <div class="form-group">
+                <label for="quantite">Quantité totale :</label>
+                <input type="number" id="quantite" name="quantite" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="annee">Année de publication :</label>
+                <input type="number" id="annee" name="annee" required>
+            </div>
+            <div class="form-group">
+                <label for="quantite">Quantité totale :</label>
+                <input type="number" id="quantite" name="quantite" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="domaine">Domaine / Catégorie :</label>
+                <input type="text" id="domaine" name="domaine" placeholder="Ex: Philosophie, Sciences, Histoire" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="emplacement">Emplacement dans la bibliothèque :</label>
+                <input type="text" id="emplacement" name="emplacement" placeholder="Ex: Étagère B - Rayon 4" required>
+            </div>
+            
+            <button type="submit" class="btn-submit">💾 Enregistrer le Livre</button>
+        </form>
+    </div>
+
+</body>
+</html>

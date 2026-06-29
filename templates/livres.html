@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Livres</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .container { max-width: 1100px; margin: 30px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2ecc71; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .btn-retour { display: inline-block; padding: 10px 15px; background-color: #34495e; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-bottom: 15px; }
+        .btn-retour:hover { background-color: #2c3e50; }
+        .btn-modifier { color: #3498db; text-decoration: none; margin-right: 10px; font-weight: bold; }
+        .btn-modifier:hover { text-decoration: underline; }
+        .btn-supprimer { color: #e74c3c; text-decoration: none; font-weight: bold; }
+        .btn-supprimer:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="/" class="btn-retour">⬅️ Retour à l'Accueil</a>
+        
+        <h1>📋 Liste des Livres en Stock</h1>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Titre</th>
+                    <th>Auteur</th>
+                    <th>Année</th>
+                    <th>Domaine</th>
+                    <th>Emplacement</th>
+                    <th>Total</th>
+                    <th>Disponible</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for livre in liste_livres %}
+                <tr>
+                    <td><strong>{{ livre[0] }}</strong></td>
+                    <td>{{ livre[1] }}</td>
+                    <td>{{ livre[2] }}</td>
+                    <td>{{ livre[3] }}</td>
+                    <td><span style="color: #7f8c8d; font-style: italic;">{{ livre[6] }}</span></td>
+                    <td><mark style="background-color: #f1c40f; padding: 2px 5px; border-radius: 3px;">{{ livre[7] }}</mark></td>
+                    <td>{{ livre[4] }}</td>
+                    <td>{{ livre[5] }}</td>
+                    <td>
+                        <a href="/modifier_livre/{{ livre[0] }}" class="btn-modifier">✏️ Modifier</a>
+                        <a href="/supprimer_livre/{{ livre[0] }}" onclick="return confirm('Supprimer définitivement ce livre ?')" class="btn-supprimer">❌ Supprimer</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
