@@ -9,10 +9,16 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'une_cle_secrete_tres_difficile_a_deviner_12345')
 
 # Connexion PostgreSQL
-DATABASE_URL = os.environ.get('DATABASE_URL', 'VOTRE_EXTERNAL_DATABASE_URL_ICI')
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
 
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
+    url = DATABASE_URL
+    # Correction automatique pour l'ancien format attendu par psycopg2
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgres://", 1)
+
+    # Connexion sécurisée
+    conn = psycopg2.connect(url)
     return conn
 
 # ==============================================================================
