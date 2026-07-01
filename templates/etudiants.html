@@ -21,6 +21,14 @@
         <a href="/" class="btn-retour">⬅️ Retour à l'Accueil</a>
         <h1>📋 Liste des Étudiants Inscrits</h1>
         
+<form action="/etudiants" method="GET" class="d-flex mb-3" style="max-width: 500px;">
+    <input type="text" name="q" class="form-control me-2" placeholder="Rechercher par nom, prénom, N° carte..." value="{{ recherche }}">
+    <button type="submit" class="btn btn-outline-primary">Rechercher</button>
+    {% if recherche %}
+        <a href="/etudiants" class="btn btn-outline-secondary ms-2">Réinitialiser</a>
+    {% endif %}
+</form>
+
         <table>
             <thead>
                 <tr>

@@ -173,14 +173,27 @@ def liste_livres():
     if 'user_id' not in session:
         return redirect(url_for('connexion'))
         
+    # Récupérer le mot-clé tapé par l'utilisateur (vide par défaut)
+    recherche = request.args.get('q', '').strip()
+    
     conn = get_db_connection()
     cursor = conn.cursor()
-    # On ne prend QUE les livres de l'utilisateur connecté
-    cursor.execute("SELECT * FROM Livres WHERE id_utilisateur = %s", (session['user_id'],))
+    
+    if recherche:
+        # Recherche insensible à la casse (ILIKE) sur le titre, l'auteur ou le domaine
+        requete = '''SELECT * FROM Livres 
+                     WHERE id_utilisateur = %s 
+                     AND (titre ILIKE %s OR auteur ILIKE %s OR domaine ILIKE %s)'''
+        mot_cle = f"%{recherche}%"
+        cursor.execute(requete, (session['user_id'], mot_cle, mot_cle, mot_cle))
+    else:
+        # Si aucune recherche, on affiche tout comme avant
+        cursor.execute("SELECT * FROM Livres WHERE id_utilisateur = %s", (session['user_id'],))
+        
     tous_les_livres = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('livres.html', liste_livres=tous_les_livres)
+    return render_template('livres.html', liste_livres=tous_les_livres, recherche=recherche)
 
 
 @app.route('/ajouter_livre', methods=['GET', 'POST'])
@@ -265,13 +278,26 @@ def liste_etudiants():
     if 'user_id' not in session:
         return redirect(url_for('connexion'))
         
+    # Récupérer le mot-clé tapé par l'utilisateur
+    recherche = request.args.get('q', '').strip()
+    
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Etudiants WHERE id_utilisateur = %s", (session['user_id'],))
+    
+    if recherche:
+        # Recherche sur le nom, prénom ou numéro de carte
+        requete = '''SELECT * FROM Etudiants 
+                     WHERE id_utilisateur = %s 
+                     AND (nom ILIKE %s OR prenom ILIKE %s OR id_carte ILIKE %s)'''
+        mot_cle = f"%{recherche}%"
+        cursor.execute(requete, (session['user_id'], mot_cle, mot_cle, mot_cle))
+    else:
+        cursor.execute("SELECT * FROM Etudiants WHERE id_utilisateur = %s", (session['user_id'],))
+        
     tous_les_etudiants = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('etudiants.html', liste_etudiants=tous_les_etudiants)
+    return render_template('etudiants.html', liste_etudiants=tous_les_etudiants, recherche=recherche)
 
 
 @app.route('/inscrire_etudiant', methods=['GET', 'POST'])
