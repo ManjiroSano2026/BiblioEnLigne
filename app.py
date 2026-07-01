@@ -1,64 +1,77 @@
 from flask import Flask, render_template, request, redirect, url_for
-import sqlite3
+import os
+import psycopg2
 
 app = Flask(__name__)
 
 # ==============================================================================
-# 1. VÉRIFICATION ET CRÉATION AUTOMATIQUE DES TABLES AU DÉMARRAGE
+# CONNEXION À POSTGRESQL
+# ==============================================================================
+# En production, on récupère l'URL de Render. En local, collez votre URL copiée entre les guillemets.
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://bibliotheque_7u8k_user:jejlorzA8ukhZUMfOMVUOCR4ZVDBhJwu@dpg-d92bot67r5hc73fcav00-a.frankfurt-postgres.render.com/bibliotheque_7u8k')
+
+def get_db_connection():
+    # Connexion à PostgreSQL
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
+
+# ==============================================================================
+# 1. CRÉATION AUTOMATIQUE DES TABLES SUR POSTGRESQL
 # ==============================================================================
 def verifier_tables():
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Table Livres (avec domaine et emplacement)
+    # Table Livres
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS Livres (
-        id_livre TEXT PRIMARY KEY,
-        titre TEXT NOT NULL,
-        auteur TEXT NOT NULL,
+        id_livre VARCHAR(50) PRIMARY KEY,
+        titre VARCHAR(255) NOT NULL,
+        auteur VARCHAR(255) NOT NULL,
         annee INTEGER,
         quantite_totale INTEGER,
         quantite_dispo INTEGER,
-        domaine TEXT,
-        emplacement TEXT
+        domaine VARCHAR(100),
+        emplacement VARCHAR(100)
     )
     ''')
     
     # Table Etudiants
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS Etudiants (
-        id_carte TEXT PRIMARY KEY,
-        nom TEXT NOT NULL,
-        prenom TEXT NOT NULL,
-        filiere TEXT,
-        niveau TEXT,
-        telephone TEXT,
-        statut TEXT DEFAULT 'Actif'
+        id_carte VARCHAR(50) PRIMARY KEY,
+        nom VARCHAR(255) NOT NULL,
+        prenom VARCHAR(255) NOT NULL,
+        filiere VARCHAR(100),
+        niveau VARCHAR(50),
+        telephone VARCHAR(50),
+        statut VARCHAR(50) DEFAULT 'Actif'
     )
     ''')
     
-    # Table Emprunts
+    # Table Emprunts (Remplacement de AUTOINCREMENT par SERIAL pour Postgres)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS Emprunts (
-        id_emprunt INTEGER PRIMARY KEY AUTOINCREMENT,
-        id_carte TEXT,
-        id_livre TEXT,
-        date_sortie TEXT,
-        date_rendu_prevue TEXT,
-        statut_emprunt TEXT DEFAULT 'En cours',
-        FOREIGN KEY(id_carte) REFERENCES Etudiants(id_carte),
-        FOREIGN KEY(id_livre) REFERENCES Livres(id_livre)
+        id_emprunt SERIAL PRIMARY KEY,
+        id_carte VARCHAR(50),
+        id_livre VARCHAR(50),
+        date_sortie VARCHAR(50),
+        date_rendu_prevue VARCHAR(50),
+        statut_emprunt VARCHAR(50) DEFAULT 'En cours',
+        FOREIGN KEY(id_carte) REFERENCES Etudiants(id_carte) ON DELETE CASCADE,
+        FOREIGN KEY(id_livre) REFERENCES Livres(id_livre) ON DELETE CASCADE
     )
     ''')
     conn.commit()
+    cursor.close()
     conn.close()
 
-# Exécution de la vérification des tables dès le lancement
+# Initialisation des tables
 verifier_tables()
 
 
 # ==============================================================================
-# 2. ROUTES GÉNÉRALES (ACCUEIL & HISTORIQUE)
+# 2. ROUTES GÉNÉRALES
 # ==============================================================================
 
 @app.route('/')
@@ -72,32 +85,34 @@ def historique():
     emprunts = []
     
     if id_carte:
-        conn = sqlite3.connect('bibliotheque.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
         requete = '''
             SELECT Emprunts.id_livre, Livres.titre, Livres.auteur, 
                    Emprunts.date_sortie, Emprunts.date_rendu_prevue, Emprunts.statut_emprunt
             FROM Emprunts
             JOIN Livres ON Emprunts.id_livre = Livres.id_livre
-            WHERE Emprunts.id_carte = ?
+            WHERE Emprunts.id_carte = %s
         '''
         cursor.execute(requete, (id_carte,))
         emprunts = cursor.fetchall()
+        cursor.close()
         conn.close()
         
     return render_template('historique.html', emprunts=emprunts, id_carte_recherche=id_carte)
 
 
 # ==============================================================================
-# 3. MODULE DE GESTION DES LIVRES (CRUD)
+# 3. GESTION DES LIVRES (CRUD)
 # ==============================================================================
 
 @app.route('/livres')
 def liste_livres():
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Livres")
     tous_les_livres = cursor.fetchall()
+    cursor.close()
     conn.close()
     return render_template('livres.html', liste_livres=tous_les_livres)
 
@@ -113,24 +128,28 @@ def ajouter_livre():
         domaine = request.form['domaine']
         emplacement = request.form['emplacement']
         
-        conn = sqlite3.connect('bibliotheque.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO Livres VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+            cursor.execute("INSERT INTO Livres VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", 
                            (id_livre, titre, auteur, annee, quantite, quantite, domaine, emplacement))
             conn.commit()
-        except sqlite3.IntegrityError:
+        except Exception:
+            conn.rollback()
+            cursor.close()
             conn.close()
             return "Erreur : Ce code de livre existe déjà !", 400
         finally:
-            conn.close()
+            if conn:
+                cursor.close()
+                conn.close()
         return redirect(url_for('liste_livres'))
     return render_template('ajouter_livre.html')
 
 
 @app.route('/modifier_livre/<id_livre>', methods=['GET', 'POST'])
 def modifier_livre(id_livre):
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if request.method == 'POST':
@@ -142,39 +161,43 @@ def modifier_livre(id_livre):
         domaine = request.form['domaine']
         emplacement = request.form['emplacement']
         
-        cursor.execute('''UPDATE Livres SET titre=?, auteur=?, annee=?, quantite_totale=?, 
-                          quantite_dispo=?, domaine=?, emplacement=? WHERE id_livre=?''',
+        cursor.execute('''UPDATE Livres SET titre=%s, auteur=%s, annee=%s, quantite_totale=%s, 
+                          quantite_dispo=%s, domaine=%s, emplacement=%s WHERE id_livre=%s''',
                        (titre, auteur, annee, quantite_totale, quantite_dispo, domaine, emplacement, id_livre))
         conn.commit()
+        cursor.close()
         conn.close()
         return redirect(url_for('liste_livres'))
         
-    cursor.execute("SELECT * FROM Livres WHERE id_livre = ?", (id_livre,))
+    cursor.execute("SELECT * FROM Livres WHERE id_livre = %s", (id_livre,))
     livre = cursor.fetchone()
+    cursor.close()
     conn.close()
     return render_template('modifier_livre.html', livre=livre)
 
 
 @app.route('/supprimer_livre/<id_livre>')
 def supprimer_livre(id_livre):
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM Livres WHERE id_livre = ?", (id_livre,))
+    cursor.execute("DELETE FROM Livres WHERE id_livre = %s", (id_livre,))
     conn.commit()
+    cursor.close()
     conn.close()
     return redirect(url_for('liste_livres'))
 
 
 # ==============================================================================
-# 4. MODULE DE GESTION DES ÉTUDIANTS (CRUD)
+# 4. GESTION DES ÉTUDIANTS (CRUD)
 # ==============================================================================
 
 @app.route('/etudiants')
 def liste_etudiants():
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Etudiants")
     tous_les_etudiants = cursor.fetchall()
+    cursor.close()
     conn.close()
     return render_template('etudiants.html', liste_etudiants=tous_les_etudiants)
 
@@ -189,24 +212,28 @@ def inscrire_etudiant():
         niveau = request.form['niveau']
         telephone = request.form['telephone']
         
-        conn = sqlite3.connect('bibliotheque.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO Etudiants (id_carte, nom, prenom, filiere, niveau, telephone) VALUES (?, ?, ?, ?, ?, ?)", 
+            cursor.execute("INSERT INTO Etudiants (id_carte, nom, prenom, filiere, niveau, telephone) VALUES (%s, %s, %s, %s, %s, %s)", 
                            (id_carte, nom, prenom, filiere, niveau, telephone))
             conn.commit()
-        except sqlite3.IntegrityError:
+        except Exception:
+            conn.rollback()
+            cursor.close()
             conn.close()
             return "Erreur : Ce numéro de carte étudiant existe déjà !", 400
         finally:
-            conn.close()
+            if conn:
+                cursor.close()
+                conn.close()
         return redirect(url_for('liste_etudiants'))
     return render_template('inscrire_etudiant.html')
 
 
 @app.route('/modifier_etudiant/<id_carte>', methods=['GET', 'POST'])
 def modifier_etudiant(id_carte):
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if request.method == 'POST':
@@ -216,30 +243,33 @@ def modifier_etudiant(id_carte):
         niveau = request.form['niveau']
         telephone = request.form['telephone']
         
-        cursor.execute('''UPDATE Etudiants SET nom=?, prenom=?, filiere=?, niveau=?, telephone=? 
-                          WHERE id_carte=?''', (nom, prenom, filiere, niveau, telephone, id_carte))
+        cursor.execute('''UPDATE Etudiants SET nom=%s, prenom=%s, filiere=%s, niveau=%s, telephone=%s 
+                          WHERE id_carte=%s''', (nom, prenom, filiere, niveau, telephone, id_carte))
         conn.commit()
+        cursor.close()
         conn.close()
         return redirect(url_for('liste_etudiants'))
         
-    cursor.execute("SELECT * FROM Etudiants WHERE id_carte = ?", (id_carte,))
+    cursor.execute("SELECT * FROM Etudiants WHERE id_carte = %s", (id_carte,))
     etudiant = cursor.fetchone()
+    cursor.close()
     conn.close()
     return render_template('modifier_etudiant.html', etudiant=etudiant)
 
 
 @app.route('/supprimer_etudiant/<id_carte>')
 def supprimer_etudiant(id_carte):
-    conn = sqlite3.connect('bibliotheque.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM Etudiants WHERE id_carte = ?", (id_carte,))
+    cursor.execute("DELETE FROM Etudiants WHERE id_carte = %s", (id_carte,))
     conn.commit()
+    cursor.close()
     conn.close()
     return redirect(url_for('liste_etudiants'))
 
 
 # ==============================================================================
-# 5. MODULE DE TRANSACTION (EMPRUNTS)
+# 5. TRANSACTIONS (EMPRUNTS)
 # ==============================================================================
 
 @app.route('/emprunter', methods=['GET', 'POST'])
@@ -250,32 +280,33 @@ def emprunter():
         date_sortie = request.form['date_sortie']
         date_rendu = request.form['date_rendu']
         
-        conn = sqlite3.connect('bibliotheque.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Vérification disponibilité Livre
-        cursor.execute("SELECT quantite_dispo FROM Livres WHERE id_livre = ?", (id_livre,))
+        cursor.execute("SELECT quantite_dispo FROM Livres WHERE id_livre = %s", (id_livre,))
         livre = cursor.fetchone()
         if not livre:
+            cursor.close()
             conn.close()
             return "Erreur : Ce code de livre n'existe pas !", 400
         if livre[0] <= 0:
+            cursor.close()
             conn.close()
             return "Erreur : Ce livre n'est plus disponible en stock !", 400
             
-        # Vérification existence Étudiant
-        cursor.execute("SELECT nom FROM Etudiants WHERE id_carte = ?", (id_carte,))
+        cursor.execute("SELECT nom FROM Etudiants WHERE id_carte = %s", (id_carte,))
         etudiant = cursor.fetchone()
         if not etudiant:
+            cursor.close()
             conn.close()
             return "Erreur : Ce numéro de carte étudiant n'existe pas !", 400
             
-        # Enregistrement de l'emprunt et mise à jour du stock
-        cursor.execute("INSERT INTO Emprunts (id_carte, id_livre, date_sortie, date_rendu_prevue) VALUES (?, ?, ?, ?)",
+        cursor.execute("INSERT INTO Emprunts (id_carte, id_livre, date_sortie, date_rendu_prevue) VALUES (%s, %s, %s, %s)",
                        (id_carte, id_livre, date_sortie, date_rendu))
-        cursor.execute("UPDATE Livres SET quantite_dispo = quantite_dispo - 1 WHERE id_livre = ?", (id_livre,))
+        cursor.execute("UPDATE Livres SET quantite_dispo = quantite_dispo - 1 WHERE id_livre = %s", (id_livre,))
         
         conn.commit()
+        cursor.close()
         conn.close()
         return redirect(url_for('liste_livres'))
         
@@ -283,4 +314,4 @@ def emprunter():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
